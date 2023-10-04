@@ -11,9 +11,18 @@ class CTkListbox:
         self.H = height
         self.W = width
         self.cells = []
+        self.selected = -1
     
     def __create_new(self, text: str) -> None:
-        button = ctk.CTkButton(self.surf, width=self.W-40, height=30, text=text)
+        def select_button(index: int):
+            self.surf.grid_slaves(index, 0)[0].configure(state='disabled')
+            if self.selected != -1:
+                self.surf.grid_slaves(self.selected, 0)[0].configure(state='normal')
+            self.selected = index
+            print(self.selected)
+        index = len(self.cells)-1
+        button = ctk.CTkButton(self.surf, width=self.W-40, height=30, text=text,
+                               command=lambda: select_button(index))
         button.grid(row=len(self.cells)-1, column=0, padx=10, pady=5)
 
     def __reset_by_index(self, index: int) -> None:
@@ -31,7 +40,10 @@ class CTkListbox:
         else:
             self.cells.insert(index, text)
             self.__reset_by_index(index)
-            
+    
+    def return_contents(self) -> list:
+        return self.cells
+
     def place(self, x: int, y: int) -> None:
         self.surf.place(x=x,y=y)
 
