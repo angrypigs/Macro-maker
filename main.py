@@ -90,6 +90,7 @@ class App:
         self.master.bind("<Up>", lambda e: self.move_command(True))
         self.time_value = tk.StringVar(self.master, "")
         self.flag_move = False
+        self.flag_loop = False
         self.init_menu()
         self.master.mainloop()
 
@@ -146,12 +147,19 @@ class App:
                       font=("Roboto", 18), text="Delete command",
                       command=lambda: self.commands_tablist.delete(
                           self.commands_tablist.return_selected()
-                      )).place(
-                         relx=0.5, rely=0.7, anchor='center') 
+                      )).place(relx=0.32, rely=0.7, anchor='center') 
         ctk.CTkButton(self.options_frame, width=180, height=30,
                       font=("Roboto", 18), text="Move command",
                       command=self.switch_move_mode).place(
-                         relx=0.5, rely=0.3, anchor='center') 
+                         relx=0.32, rely=0.3, anchor='center') 
+        ctk.CTkLabel(self.options_frame, width=100, height=40,
+                     font=("Roboto", 22), text="Looped").place(
+                         relx=0.8, rely=0.35, anchor='center')
+        def switch_loop_mode(n: int) -> None: self.flag_loop = bool(int(n))
+        slider = ctk.CTkSlider(self.options_frame, width=60, height=30, from_=0,
+                      to=1, number_of_steps=1, command=switch_loop_mode)
+        slider.place(relx=0.8, rely=0.6, anchor='center')
+        slider.set(0)
 
         # time frame
         self.time_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
