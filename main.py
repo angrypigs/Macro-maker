@@ -17,8 +17,9 @@ class CTkListbox:
     def __create_new(self, text: str) -> None:
         index = len(self.cells)-1
         button = ctk.CTkButton(self.surf, width=self.W-20, height=30, text=text,
-                               command=lambda: self.select(index))
-        button.grid(row=len(self.cells)-1, column=0, padx=10, pady=5)
+                               command=lambda: self.select(index), 
+                               fg_color="transparent", anchor="w", font=("Roboto", 16))
+        button.grid(row=len(self.cells)-1, column=0, padx=5, pady=2)
 
     def __reset_by_index(self, index: int) -> None:
         for i in range(index, len(self.cells)):
@@ -29,10 +30,11 @@ class CTkListbox:
                 gridcell[0].configure(text=self.cells[i])
 
     def select(self, index: int) -> None:
-        self.surf.grid_slaves(index, 0)[0].configure(state='disabled')
-        if self.selected_cell != -1:
-            self.surf.grid_slaves(self.selected_cell, 0)[0].configure(state='normal')
-        self.selected_cell = index
+        if index != self.selected_cell:
+            self.surf.grid_slaves(index, 0)[0].configure(fg_color=self.DEFAULT_COLOR)
+            if self.selected_cell != -1:
+                self.surf.grid_slaves(self.selected_cell, 0)[0].configure(fg_color="transparent")
+            self.selected_cell = index
 
     def delete(self, index: int) -> None:
         self.cells.pop(index)
@@ -73,24 +75,18 @@ class App:
         self.master.mainloop()
 
     def push_time_command(self) -> None:
-        """
-        
-        """
-        self.commands_tablist.insert(2, "abc")
-        # try:
-        #     time = float(self.time_value.get())
-        # except Exception:
-        #     time = 1
-        # if time == int(time): time = int(time)
-        # index = self.commands_tablist.curselection()
-        # if index==None:
-        #     self.commands_list.append(f"time {time}")
-        #     self.commands_tablist.insert(tk.END, f"Time ({time})")
-        # else:
-        #     print(index)
-        #     self.commands_list.insert(index, f"time {time}")
-        #     self.commands_tablist.insert(6, f"Time ({time})")
-        # print(self.commands_list)
+        try:
+            time = float(self.time_value.get())
+        except Exception:
+            time = 1
+        if time == int(time): time = int(time)
+        index = self.commands_tablist.return_selected()
+        if index==None:
+            self.commands_list.append(f"time {time}")
+            self.commands_tablist.insert(-1, f"Time ({time})")
+        else:
+            self.commands_list.insert(index, f"time {time}")
+            self.commands_tablist.insert(index, f"Time ({time})")
 
     def init_menu(self) -> None:
 
