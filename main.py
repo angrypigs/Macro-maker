@@ -35,11 +35,25 @@ class CTkListbox:
             if self.selected_cell != -1:
                 self.surf.grid_slaves(self.selected_cell, 0)[0].configure(fg_color="transparent")
             self.selected_cell = index
-
+    
+    def swap(self, index1: int, index2: int) -> None:
+        if self.selected_cell == index1:
+            self.select(index2)
+        elif self.selected_cell == index2:
+            self.select(index1)
+        self.cells[index1], self.cells[index2] = self.cells[index2], self.cells[index1]
+        self.surf.grid_slaves(index1, 0)[0].configure(text=self.cells[index1])
+        self.surf.grid_slaves(index2, 0)[0].configure(text=self.cells[index2])
+        
     def delete(self, index: int) -> None:
-        self.cells.pop(index)
-        self.__reset_by_index(index)
-        self.surf.destroy(self.surf.grid_slaves(len(self.cells), 0)[0])
+        if index != -1:
+            self.cells.pop(index)
+            self.__reset_by_index(index)
+            self.surf.grid_slaves(len(self.cells), 0)[0].destroy()
+            gridcell =  self.surf.grid_slaves(self.selected_cell, 0)
+            if len(gridcell)>0:
+                gridcell[0].configure(fg_color="transparent")
+            self.selected_cell = -1
 
     def insert(self, index: int= -1, text: str = "") -> None:
         if index == -1:
@@ -54,6 +68,9 @@ class CTkListbox:
 
     def return_selected(self) -> int:
         return self.selected_cell
+    
+    def return_size(self) -> int:
+        return len(self.cells)
 
     def place(self, **kwargs) -> None:
         self.surf.place(**kwargs)
@@ -69,10 +86,23 @@ class App:
         self.master.geometry(f"{self.WIDTH}x{self.HEIGHT}")
         self.master.title("Macro maker")
         self.master.resizable(False, False)
+        self.master.bind("<Down>", lambda e: self.move_command(False))
+        self.master.bind("<Up>", lambda e: self.move_command(True))
         self.time_value = tk.StringVar(self.master, "")
-        self.commands_list = []
+        self.flag_move = False
         self.init_menu()
         self.master.mainloop()
+
+    def move_command(self, up_or_down: bool) -> None:
+        selected = self.commands_tablist.return_selected()
+        if (selected<self.commands_tablist.return_size()-1 and
+            self.flag_move and not up_or_down and selected != -1):
+            self.commands_tablist.swap(selected, selected+1)
+        elif (selected>0 and self.flag_move and up_or_down and selected != -1):
+            self.commands_tablist.swap(selected, selected-1)
+
+    def switch_move_mode(self) -> None:
+        self.flag_move = not self.flag_move
 
     def push_time_command(self) -> None:
         try:
@@ -82,11 +112,13 @@ class App:
         if time == int(time): time = int(time)
         index = self.commands_tablist.return_selected()
         if index==None:
-            self.commands_list.append(f"time {time}")
             self.commands_tablist.insert(-1, f"Time ({time})")
         else:
-            self.commands_list.insert(index, f"time {time}")
             self.commands_tablist.insert(index, f"Time ({time})")
+
+    def delete_command(self) -> None:
+        index = self.commands_tablist.return_selected()
+        self.commands_tablist.delete(index)
 
     def init_menu(self) -> None:
 
@@ -110,6 +142,16 @@ class App:
         self.options_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
             height=160, corner_radius=10)
         self.options_frame.place(relx=0.75, rely=0.32, anchor='center')
+        ctk.CTkButton(self.options_frame, width=180, height=30,
+                      font=("Roboto", 18), text="Delete command",
+                      command=lambda: self.commands_tablist.delete(
+                          self.commands_tablist.return_selected()
+                      )).place(
+                         relx=0.5, rely=0.7, anchor='center') 
+        ctk.CTkButton(self.options_frame, width=180, height=30,
+                      font=("Roboto", 18), text="Move command",
+                      command=self.switch_move_mode).place(
+                         relx=0.5, rely=0.3, anchor='center') 
 
         # time frame
         self.time_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
@@ -127,8 +169,6 @@ class App:
         self.save_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
             height=80, corner_radius=10)
         self.save_frame.place(relx=0.75, rely=0.74, anchor='center')
-
-        
 
         # notes frame
         self.notes_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
