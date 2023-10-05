@@ -8,21 +8,16 @@ class CTkListbox:
 
     def __init__(self, master, width: int, height: int) -> None:
         self.surf = ctk.CTkScrollableFrame(master, width=width, height=height)
+        self.DEFAULT_COLOR = ctk.ThemeManager.theme["CTkButton"]["fg_color"]
         self.H = height
         self.W = width
         self.cells = []
-        self.selected = -1
+        self.selected_cell = -1
     
     def __create_new(self, text: str) -> None:
-        def select_button(index: int):
-            self.surf.grid_slaves(index, 0)[0].configure(state='disabled')
-            if self.selected != -1:
-                self.surf.grid_slaves(self.selected, 0)[0].configure(state='normal')
-            self.selected = index
-            print(self.selected)
         index = len(self.cells)-1
-        button = ctk.CTkButton(self.surf, width=self.W-40, height=30, text=text,
-                               command=lambda: select_button(index))
+        button = ctk.CTkButton(self.surf, width=self.W-20, height=30, text=text,
+                               command=lambda: self.select(index))
         button.grid(row=len(self.cells)-1, column=0, padx=10, pady=5)
 
     def __reset_by_index(self, index: int) -> None:
@@ -32,6 +27,17 @@ class CTkListbox:
                 self.__create_new(self.cells[i])
             else:
                 gridcell[0].configure(text=self.cells[i])
+
+    def select(self, index: int) -> None:
+        self.surf.grid_slaves(index, 0)[0].configure(state='disabled')
+        if self.selected_cell != -1:
+            self.surf.grid_slaves(self.selected_cell, 0)[0].configure(state='normal')
+        self.selected_cell = index
+
+    def delete(self, index: int) -> None:
+        self.cells.pop(index)
+        self.__reset_by_index(index)
+        self.surf.destroy(self.surf.grid_slaves(len(self.cells), 0)[0])
 
     def insert(self, index: int= -1, text: str = "") -> None:
         if index == -1:
@@ -44,8 +50,11 @@ class CTkListbox:
     def return_contents(self) -> list:
         return self.cells
 
-    def place(self, x: int, y: int) -> None:
-        self.surf.place(x=x,y=y)
+    def return_selected(self) -> int:
+        return self.selected_cell
+
+    def place(self, **kwargs) -> None:
+        self.surf.place(**kwargs)
 
     
 
@@ -85,18 +94,13 @@ class App:
 
     def init_menu(self) -> None:
 
-        self.commands_tablist = CTkListbox(self.master, 300, 600)
-        self.commands_tablist.place(50, 50)
-        for i in range(20):
-            self.commands_tablist.insert(i, f"{i}")
-
         # command list frame
-        # self.commands_frame = ctk.CTkFrame(self.master, height=self.HEIGHT-80,
-        #     width=self.WIDTH//2-80, corner_radius=10)
-        # self.commands_frame.place(relx=0.25, rely=0.5, anchor='center')
-        # self.commands_tablist = CTkListbox(self.commands_frame, 
-        #     width=self.WIDTH//2-160, height=self.HEIGHT-160)
-        # self.commands_tablist.place(relx=0.5, rely=0.5, anchor='center')
+        self.commands_frame = ctk.CTkFrame(self.master, height=self.HEIGHT-80,
+            width=self.WIDTH//2-80, corner_radius=10)
+        self.commands_frame.place(relx=0.25, rely=0.5, anchor='center')
+        self.commands_tablist = CTkListbox(self.commands_frame, 
+            width=self.WIDTH//2-160, height=self.HEIGHT-160)
+        self.commands_tablist.place(relx=0.5, rely=0.5, anchor='center')
 
         # title frame
         self.title_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
