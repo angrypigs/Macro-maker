@@ -124,7 +124,7 @@ class App:
         elif key == keyboard.Key.f7 and not self.flag_working:
             pass
         elif not self.flag_working and self.flag_keyboard:
-            self.commands_tablist.insert(text=str(key))
+            self.commands_tablist.insert(text="".join([x for x in str(key).strip("'").lstrip("Key.") if x != "_"]))
 
     def move_command(self, up_or_down: bool) -> None:
         selected = self.commands_tablist.return_selected()
