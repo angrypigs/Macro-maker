@@ -5,6 +5,7 @@ import tkinter as tk
 import time as tm
 
 class CTkListbox:
+    """Listbox widget made with CTkScrollableFrame and CTkButton"""
 
     def __init__(self, master, width: int, height: int) -> None:
         self.surf = ctk.CTkScrollableFrame(master, width=width, height=height)
@@ -30,6 +31,7 @@ class CTkListbox:
                 gridcell[0].configure(text=self.cells[i])
 
     def select(self, index: int) -> None:
+        """Select the option"""
         if index != self.selected_cell:
             self.surf.grid_slaves(index, 0)[0].configure(fg_color=self.DEFAULT_COLOR)
             if self.selected_cell != -1:
@@ -37,6 +39,7 @@ class CTkListbox:
             self.selected_cell = index
     
     def swap(self, index1: int, index2: int) -> None:
+        """Swap two options"""
         if self.selected_cell == index1:
             self.select(index2)
         elif self.selected_cell == index2:
@@ -46,6 +49,7 @@ class CTkListbox:
         self.surf.grid_slaves(index2, 0)[0].configure(text=self.cells[index2])
         
     def delete(self, index: int) -> None:
+        """Delete option"""
         if index != -1:
             self.cells.pop(index)
             self.__reset_by_index(index)
@@ -56,6 +60,7 @@ class CTkListbox:
             self.selected_cell = -1
 
     def insert(self, index: int= -1, text: str = "") -> None:
+        """Insert option at given index"""
         if index == -1:
             self.cells.append(text)
             self.__create_new(text)
@@ -64,15 +69,19 @@ class CTkListbox:
             self.__reset_by_index(index)
     
     def return_contents(self) -> list:
+        """Return all options as list of strings"""
         return self.cells
 
     def return_selected(self) -> int:
+        """Return currently selected option's index"""
         return self.selected_cell
     
     def return_size(self) -> int:
+        """Returns number of options"""
         return len(self.cells)
 
     def place(self, **kwargs) -> None:
+        """Place listbox"""
         self.surf.place(**kwargs)
 
     
@@ -80,6 +89,7 @@ class CTkListbox:
 class App:
 
     def __init__(self) -> None:
+        self.DEFAULT_BTN_COLOR = ctk.ThemeManager.theme["CTkButton"]["fg_color"]
         self.WIDTH = 900
         self.HEIGHT = 700
         self.master = ctk.CTk()
@@ -91,8 +101,30 @@ class App:
         self.time_value = tk.StringVar(self.master, "")
         self.flag_move = False
         self.flag_loop = False
+        self.flag_keyboard = False
+        self.flag_mouse = False
+        self.flag_working = False
         self.init_menu()
+
+        self.mouse_listener = mouse.Listener(on_click=self.mouse_input, daemon=True)
+        self.mouse_listener.start()
+        self.key_listener = keyboard.Listener(on_press=self.keyboard_input, daemon=True)
+        self.key_listener.start()
+
         self.master.mainloop()
+
+    def mouse_input(self, x: float, y: float, button: str, pressed: bool) -> None:
+        if self.flag_mouse:
+            press = "press" if pressed else "release"
+            self.commands_tablist.insert(text=f"{button} {x} {y} {press}")
+
+    def keyboard_input(self, key) -> None:
+        if key == keyboard.Key.f6 and not self.flag_working:
+            self.flag_mouse = not self.flag_mouse
+        elif key == keyboard.Key.f7 and not self.flag_working:
+            pass
+        elif not self.flag_working and self.flag_keyboard:
+            self.commands_tablist.insert(text=str(key))
 
     def move_command(self, up_or_down: bool) -> None:
         selected = self.commands_tablist.return_selected()
@@ -101,9 +133,6 @@ class App:
             self.commands_tablist.swap(selected, selected+1)
         elif (selected>0 and self.flag_move and up_or_down and selected != -1):
             self.commands_tablist.swap(selected, selected-1)
-
-    def switch_move_mode(self) -> None:
-        self.flag_move = not self.flag_move
 
     def push_time_command(self) -> None:
         try:
@@ -116,10 +145,6 @@ class App:
             self.commands_tablist.insert(-1, f"Time ({time})")
         else:
             self.commands_tablist.insert(index, f"Time ({time})")
-
-    def delete_command(self) -> None:
-        index = self.commands_tablist.return_selected()
-        self.commands_tablist.delete(index)
 
     def init_menu(self) -> None:
 
@@ -143,23 +168,38 @@ class App:
         self.options_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
             height=160, corner_radius=10)
         self.options_frame.place(relx=0.75, rely=0.32, anchor='center')
-        ctk.CTkButton(self.options_frame, width=180, height=30,
+        ctk.CTkButton(self.options_frame, width=150, height=30,
                       font=("Roboto", 18), text="Delete command",
                       command=lambda: self.commands_tablist.delete(
                           self.commands_tablist.return_selected()
-                      )).place(relx=0.32, rely=0.7, anchor='center') 
-        ctk.CTkButton(self.options_frame, width=180, height=30,
+                      )).place(relx=0.27, rely=0.75, anchor='center') 
+        
+        def switch_move_mode() -> None:
+            self.flag_move = not self.flag_move
+            if self.flag_move: self.move_button.configure(fg_color='transparent')
+            else: self.move_button.configure(fg_color=self.DEFAULT_BTN_COLOR)
+        self.move_button = ctk.CTkButton(self.options_frame, width=150, height=30,
                       font=("Roboto", 18), text="Move command",
-                      command=self.switch_move_mode).place(
-                         relx=0.32, rely=0.3, anchor='center') 
+                      command=switch_move_mode)
+        self.move_button.place(relx=0.73, rely=0.75, anchor='center') 
+
         ctk.CTkLabel(self.options_frame, width=100, height=40,
                      font=("Roboto", 22), text="Looped").place(
-                         relx=0.8, rely=0.35, anchor='center')
+                         relx=0.17, rely=0.18, anchor='center')
         def switch_loop_mode(n: int) -> None: self.flag_loop = bool(int(n))
         slider = ctk.CTkSlider(self.options_frame, width=60, height=30, from_=0,
                       to=1, number_of_steps=1, command=switch_loop_mode)
-        slider.place(relx=0.8, rely=0.6, anchor='center')
+        slider.place(relx=0.17, rely=0.42, anchor='center')
         slider.set(0)
+
+        def switch_keyboard_mode() -> None:
+            self.flag_keyboard = not self.flag_keyboard
+            if self.flag_keyboard: self.keyboard_button.configure(fg_color='transparent')
+            else: self.keyboard_button.configure(fg_color=self.DEFAULT_BTN_COLOR)
+        self.keyboard_button = ctk.CTkButton(self.options_frame, width=150, height=30,
+                      font=("Roboto", 18), text="Switch keyboard listener",
+                      command=switch_keyboard_mode)
+        self.keyboard_button.place(relx=0.65, rely=0.3, anchor='center')
 
         # time frame
         self.time_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
@@ -172,6 +212,8 @@ class App:
                       font=("Roboto", 18), text="Add time command",
                       command=self.push_time_command).place(
                          relx=0.5, rely=0.7, anchor='center') 
+        
+        
 
         # save frame
         self.save_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
@@ -184,7 +226,7 @@ class App:
         self.notes_frame.place(relx=0.75, rely=0.89, anchor='center')
         ctk.CTkLabel(self.notes_frame, width=self.WIDTH//2-100, height=60,
                      font=("Roboto", 16), text_color="#2583CD",
-                     text="Press F6 to toggle keyboard/mouse listener\nPress F7 to turn on/off macro",
+                     text="Press F6 to toggle mouse listener\nPress F7 to turn on/off macro",
                      justify='left', anchor='w').place(relx=0.5, rely=0.5, anchor='center')
 
 
