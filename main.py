@@ -68,7 +68,7 @@ class CTkListbox:
             self.cells.insert(index, text)
             self.__reset_by_index(index)
     
-    def return_contents(self) -> list:
+    def return_contents(self) -> list[str]:
         """Return all options as list of strings"""
         return self.cells
 
@@ -99,6 +99,7 @@ class App:
         self.master.bind("<Down>", lambda e: self.move_command(False))
         self.master.bind("<Up>", lambda e: self.move_command(True))
         self.time_value = tk.StringVar(self.master, "")
+        self.text_value = tk.StringVar(self.master, "")
         self.flag_move = False
         self.flag_loop = False
         self.flag_keyboard = False
@@ -110,6 +111,12 @@ class App:
         self.mouse_listener.start()
         self.key_listener = keyboard.Listener(on_press=self.keyboard_input, daemon=True)
         self.key_listener.start()
+
+        def close_app() -> None:
+            self.mouse_listener.stop()
+            self.key_listener.stop()
+            self.master.quit()
+        self.master.protocol("WM_DELETE_WINDOW", close_app)
 
         self.master.mainloop()
 
@@ -124,7 +131,9 @@ class App:
         elif key == keyboard.Key.f7 and not self.flag_working:
             pass
         elif not self.flag_working and self.flag_keyboard:
-            self.commands_tablist.insert(text="".join([x for x in str(key).strip("'").lstrip("Key.") if x != "_"]))
+            text = str(key).strip("'").removeprefix("Key.")
+            self.commands_tablist.insert(text="".join([x for x in text
+                                                       if x != "_" or len(text)==1]))
 
     def move_command(self, up_or_down: bool) -> None:
         selected = self.commands_tablist.return_selected()
@@ -145,6 +154,16 @@ class App:
             self.commands_tablist.insert(-1, f"Time ({time})")
         else:
             self.commands_tablist.insert(index, f"Time ({time})")
+    
+    def push_text_command(self) -> None:
+        word = self.text_value.get()
+        word = "Word "+word if len(word)>1 else word
+        index = self.commands_tablist.return_selected()
+        if index==None: self.commands_tablist.insert(-1, word)
+        else: self.commands_tablist.insert(index, word)
+
+    def run_commands(self) -> None:
+        command_list = [x.split() for x in self.commands_tablist.return_contents()]
 
     def init_menu(self) -> None:
 
