@@ -1,4 +1,5 @@
 from pynput import mouse, keyboard
+from threading import Thread
 import pyautogui as pg
 import customtkinter as ctk
 import tkinter as tk
@@ -20,7 +21,7 @@ class CTkListbox:
         button = ctk.CTkButton(self.surf, width=self.W-20, height=30, text=text,
                                command=lambda: self.select(index), 
                                fg_color="transparent", anchor="w", font=("Roboto", 16))
-        button.grid(row=len(self.cells)-1, column=0, padx=5, pady=2)
+        button.grid(row=len(self.cells)-1, column=0, padx=5, ipady=1)
 
     def __reset_by_index(self, index: int) -> None:
         for i in range(index, len(self.cells)):
@@ -113,12 +114,19 @@ class App:
         self.key_listener.start()
 
         def close_app() -> None:
+            self.flag_working = False
             self.mouse_listener.stop()
             self.key_listener.stop()
             self.master.quit()
         self.master.protocol("WM_DELETE_WINDOW", close_app)
 
         self.master.mainloop()
+
+    def time_waiter(self, time: int|float) -> None:
+        for i in range(int(time)):
+            if not self.flag_working: break
+            tm.sleep(1)
+        tm.sleep(time-int(time))
 
     def mouse_input(self, x: float, y: float, button: str, pressed: bool) -> None:
         if self.flag_mouse:
@@ -128,8 +136,11 @@ class App:
     def keyboard_input(self, key) -> None:
         if key == keyboard.Key.f6 and not self.flag_working:
             self.flag_mouse = not self.flag_mouse
-        elif key == keyboard.Key.f7 and not self.flag_working:
-            pass
+        elif key == keyboard.Key.f7:
+            self.flag_working = not self.flag_working
+            if self.flag_working:
+                Thread(target=self.run_commands,
+                          daemon=True).start()
         elif not self.flag_working and self.flag_keyboard:
             text = str(key).strip("'").removeprefix("Key.")
             self.commands_tablist.insert(text="".join([x for x in text
@@ -150,10 +161,8 @@ class App:
             time = 1
         if time == int(time): time = int(time)
         index = self.commands_tablist.return_selected()
-        if index==None:
-            self.commands_tablist.insert(-1, f"Time ({time})")
-        else:
-            self.commands_tablist.insert(index, f"Time ({time})")
+        if index==None: self.commands_tablist.insert(-1, f"Time {time}")
+        else: self.commands_tablist.insert(index, f"Time {time}")
     
     def push_text_command(self) -> None:
         word = self.text_value.get()
@@ -164,6 +173,20 @@ class App:
 
     def run_commands(self) -> None:
         command_list = [x.split() for x in self.commands_tablist.return_contents()]
+        for i in command_list:
+            if not self.flag_working: break
+            if i[0]=="Word":
+                pg.typewrite(i[1], interval=0.05)
+            elif i[0]=="Time":
+                self.time_waiter(float(i[1]))
+            elif "Button" in i[0]:
+                if i[3] == "press":
+                    pg.mouseDown(button=i[0].split(".")[1], x=int(i[1]), y=int(i[2]))
+                else:
+                    pg.mouseUp(button=i[0].split(".")[1], x=int(i[1]), y=int(i[2]))
+            else:
+                pg.press(i[0])
+        self.flag_working = False
 
     def init_menu(self) -> None:
 
