@@ -103,6 +103,7 @@ class App:
         self.text_value = tk.StringVar(self.master, "")
         self.flag_move = False
         self.flag_loop = False
+        self.flag_mouse_input = False
         self.flag_keyboard = False
         self.flag_mouse = False
         self.flag_working = False
@@ -130,8 +131,14 @@ class App:
 
     def mouse_input(self, x: float, y: float, button: str, pressed: bool) -> None:
         if self.flag_mouse:
-            press = "press" if pressed else "release"
-            self.commands_tablist.insert(text=f"{button} {x} {y} {press}")
+            if not self.flag_mouse_input:
+                input_type = "click"
+            elif pressed:
+                input_type = "press"
+            else:
+                input_type = "release"
+            if self.flag_mouse_input or pressed:
+                self.commands_tablist.insert(text=f"{button} {x} {y} {input_type}")
 
     def keyboard_input(self, key) -> None:
         if key == keyboard.Key.f6 and not self.flag_working:
@@ -173,23 +180,27 @@ class App:
 
     def run_commands(self) -> None:
         command_list = [x.split() for x in self.commands_tablist.return_contents()]
-        for i in command_list:
+        while True:
             if not self.flag_working: break
-            if i[0]=="Word":
-                pg.typewrite(i[1], interval=0.05)
-            elif i[0]=="Time":
-                self.time_waiter(float(i[1]))
-            elif "Button" in i[0]:
-                if i[3] == "press":
-                    pg.mouseDown(button=i[0].split(".")[1], x=int(i[1]), y=int(i[2]))
+            for i in command_list:
+                if not self.flag_working: break
+                if i[0]=="Word":
+                    pg.typewrite(i[1], interval=0.05)
+                elif i[0]=="Time":
+                    self.time_waiter(float(i[1]))
+                elif "Button" in i[0]:
+                    if i[3] == "click":
+                        pg.click(button=i[0].split(".")[1], x=int(i[1]), y=int(i[2]))
+                    if i[3] == "press":
+                        pg.mouseDown(button=i[0].split(".")[1], x=int(i[1]), y=int(i[2]))
+                    else:
+                        pg.mouseUp(button=i[0].split(".")[1], x=int(i[1]), y=int(i[2]))
                 else:
-                    pg.mouseUp(button=i[0].split(".")[1], x=int(i[1]), y=int(i[2]))
-            else:
-                pg.press(i[0])
+                    pg.press(i[0])
+            if not self.flag_loop: break
         self.flag_working = False
 
     def init_menu(self) -> None:
-
         # command list frame
         self.commands_frame = ctk.CTkFrame(self.master, height=self.HEIGHT-80,
             width=self.WIDTH//2-80, corner_radius=10)
@@ -197,66 +208,71 @@ class App:
         self.commands_tablist = CTkListbox(self.commands_frame, 
             width=self.WIDTH//2-160, height=self.HEIGHT-160)
         self.commands_tablist.place(relx=0.5, rely=0.5, anchor='center')
-
-        # title frame
-        self.title_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
-            height=80, corner_radius=10)
-        self.title_frame.place(relx=0.75, rely=0.11, anchor='center')
-        ctk.CTkLabel(self.title_frame, height=60, width=self.WIDTH//2-80,
-                     font=("Roboto", 32), text="Macro maker"
-                     ).place(relx=0.5, rely=0.5, anchor='center')
         
         # options frame
-        self.options_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
-            height=160, corner_radius=10)
-        self.options_frame.place(relx=0.75, rely=0.32, anchor='center')
-        ctk.CTkButton(self.options_frame, width=150, height=30,
-                      font=("Roboto", 18), text="Delete command",
-                      command=lambda: self.commands_tablist.delete(
-                          self.commands_tablist.return_selected()
-                      )).place(relx=0.27, rely=0.75, anchor='center') 
-        
-        def switch_move_mode() -> None:
-            self.flag_move = not self.flag_move
-            if self.flag_move: self.move_button.configure(fg_color='transparent')
-            else: self.move_button.configure(fg_color=self.DEFAULT_BTN_COLOR)
-        self.move_button = ctk.CTkButton(self.options_frame, width=150, height=30,
-                      font=("Roboto", 18), text="Move command",
-                      command=switch_move_mode)
-        self.move_button.place(relx=0.73, rely=0.75, anchor='center') 
+        self.options_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-20,
+            height=240, corner_radius=10)
+        self.options_frame.place(relx=0.72, rely=0.23, anchor='center')
+
+        def switch_loop_mode(n: int) -> None: 
+            self.flag_loop = bool(int(n))
+        def switch_keyboard_mode(n: int) -> None:
+            self.flag_keyboard = bool(int(n))
+        def switch_move_mode(n: int) -> None:
+            self.flag_move = bool(int(n))
+        def switch_mouse_input_mode(n: int) -> None:
+            self.flag_mouse_input = bool(int(n))
 
         ctk.CTkLabel(self.options_frame, width=100, height=40,
-                     font=("Roboto", 22), text="Looped").place(
-                         relx=0.17, rely=0.18, anchor='center')
-        def switch_loop_mode(n: int) -> None: self.flag_loop = bool(int(n))
-        slider = ctk.CTkSlider(self.options_frame, width=60, height=30, from_=0,
+                     font=("Roboto", 18), text="Switch keyboard listener").place(
+                         relx=0.03, rely=0.13, anchor='w')
+        slider0 = ctk.CTkSlider(self.options_frame, width=50, height=25, from_=0,
+                      to=1, number_of_steps=1, command=switch_keyboard_mode)
+        slider0.place(relx=0.9, rely=0.13, anchor='center')
+        slider0.set(0)
+
+        ctk.CTkLabel(self.options_frame, width=100, height=40,
+                     font=("Roboto", 18), text="Switch moving commands").place(
+                         relx=0.03, rely=0.33, anchor='w')
+        slider1 = ctk.CTkSlider(self.options_frame, width=50, height=25, from_=0,
+                      to=1, number_of_steps=1, command=switch_move_mode)
+        slider1.place(relx=0.9, rely=0.33, anchor='center')
+        slider1.set(0)
+        
+        ctk.CTkLabel(self.options_frame, width=100, height=40,
+                     font=("Roboto", 18), text="Switch executing commands in loop").place(
+                         relx=0.03, rely=0.53, anchor='w')
+        slider2 = ctk.CTkSlider(self.options_frame, width=50, height=25, from_=0,
                       to=1, number_of_steps=1, command=switch_loop_mode)
-        slider.place(relx=0.17, rely=0.42, anchor='center')
-        slider.set(0)
+        slider2.place(relx=0.9, rely=0.53, anchor='center')
+        slider2.set(0)
 
-        def switch_keyboard_mode() -> None:
-            self.flag_keyboard = not self.flag_keyboard
-            if self.flag_keyboard: self.keyboard_button.configure(fg_color='transparent')
-            else: self.keyboard_button.configure(fg_color=self.DEFAULT_BTN_COLOR)
-        self.keyboard_button = ctk.CTkButton(self.options_frame, width=150, height=30,
-                      font=("Roboto", 18), text="Switch keyboard listener",
-                      command=switch_keyboard_mode)
-        self.keyboard_button.place(relx=0.65, rely=0.3, anchor='center')
+        ctk.CTkLabel(self.options_frame, width=100, height=40,
+                     font=("Roboto", 18), text="Mouse input type").place(
+                         relx=0.5, rely=0.73, anchor='center')
+        ctk.CTkLabel(self.options_frame, width=100, height=40,
+                     font=("Roboto", 18), text="click").place(
+                         relx=0.35, rely=0.88, anchor='center')
+        ctk.CTkLabel(self.options_frame, width=100, height=40,
+                     font=("Roboto", 18), text="press/release").place(
+                         relx=0.75, rely=0.88, anchor='center')
+        slider3 = ctk.CTkSlider(self.options_frame, width=50, height=25, from_=0,
+                      to=1, number_of_steps=1, command=switch_mouse_input_mode)
+        slider3.place(relx=0.5, rely=0.88, anchor='center')
+        slider3.set(0)
 
-        # time frame
-        self.time_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
+        # actions frame
+        self.actions_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
             height=120, corner_radius=10)
-        self.time_frame.place(relx=0.75, rely=0.56, anchor='center')
-        ctk.CTkEntry(self.time_frame, width=180, height=30, 
+        self.actions_frame.place(relx=0.75, rely=0.56, anchor='center')
+        ctk.CTkEntry(self.actions_frame, width=180, height=30, 
                      textvariable=self.time_value, font=("Roboto", 18)).place(
                          relx=0.5, rely=0.3, anchor=tk.CENTER)
-        ctk.CTkButton(self.time_frame, width=180, height=30,
+        ctk.CTkButton(self.actions_frame, width=180, height=30,
                       font=("Roboto", 18), text="Add time command",
                       command=self.push_time_command).place(
                          relx=0.5, rely=0.7, anchor='center') 
         
-        
-
         # save frame
         self.save_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
             height=80, corner_radius=10)
