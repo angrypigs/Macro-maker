@@ -99,7 +99,6 @@ class App:
         self.master.resizable(False, False)
         self.master.bind("<Down>", lambda e: self.move_command(False))
         self.master.bind("<Up>", lambda e: self.move_command(True))
-        self.time_value = tk.StringVar(self.master, "")
         self.text_value = tk.StringVar(self.master, "")
         self.flag_move = False
         self.flag_loop = False
@@ -163,7 +162,7 @@ class App:
 
     def push_time_command(self) -> None:
         try:
-            time = float(self.time_value.get())
+            time = float(self.text_value.get())
         except Exception:
             time = 1
         if time == int(time): time = int(time)
@@ -185,7 +184,7 @@ class App:
             for i in command_list:
                 if not self.flag_working: break
                 if i[0]=="Word":
-                    pg.typewrite(i[1], interval=0.05)
+                    pg.typewrite(" ".join(i[1:]), interval=0.05)
                 elif i[0]=="Time":
                     self.time_waiter(float(i[1]))
                 elif "Button" in i[0]:
@@ -262,30 +261,39 @@ class App:
         slider3.set(0)
 
         # actions frame
-        self.actions_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
-            height=120, corner_radius=10)
-        self.actions_frame.place(relx=0.75, rely=0.56, anchor='center')
-        ctk.CTkEntry(self.actions_frame, width=180, height=30, 
-                     textvariable=self.time_value, font=("Roboto", 18)).place(
-                         relx=0.5, rely=0.3, anchor=tk.CENTER)
+        self.actions_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-20,
+            height=150, corner_radius=10)
+        self.actions_frame.place(relx=0.72, rely=0.54, anchor='center')
+        ctk.CTkEntry(self.actions_frame, width=300, height=30, 
+                     textvariable=self.text_value, font=("Roboto", 18)).place(
+                         relx=0.5, rely=0.2, anchor='center')
         ctk.CTkButton(self.actions_frame, width=180, height=30,
                       font=("Roboto", 18), text="Add time command",
                       command=self.push_time_command).place(
-                         relx=0.5, rely=0.7, anchor='center') 
+                         relx=0.27, rely=0.5, anchor='center') 
+        ctk.CTkButton(self.actions_frame, width=180, height=30,
+                      font=("Roboto", 18), text="Add word command",
+                      command=self.push_text_command).place(
+                         relx=0.73, rely=0.5, anchor='center') 
+        ctk.CTkButton(self.actions_frame, width=180, height=30,
+                      font=("Roboto", 18), text="Delete command",
+                      command=lambda: self.commands_tablist.delete(
+                          self.commands_tablist.return_selected())).place(
+                         relx=0.27, rely=0.8, anchor='center') 
         
         # save frame
-        self.save_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
+        self.save_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-20,
             height=80, corner_radius=10)
-        self.save_frame.place(relx=0.75, rely=0.74, anchor='center')
+        self.save_frame.place(relx=0.72, rely=0.74, anchor='center')
 
         # notes frame
-        self.notes_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-80,
+        self.notes_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-20,
             height=80, corner_radius=10)
-        self.notes_frame.place(relx=0.75, rely=0.89, anchor='center')
+        self.notes_frame.place(relx=0.72, rely=0.89, anchor='center')
         ctk.CTkLabel(self.notes_frame, width=self.WIDTH//2-100, height=60,
                      font=("Roboto", 16), text_color="#2583CD",
                      text="Press F6 to toggle mouse listener\nPress F7 to turn on/off macro",
-                     justify='left', anchor='w').place(relx=0.5, rely=0.5, anchor='center')
+                     justify='left', anchor='w').place(relx=0.05, rely=0.5, anchor='w')
 
 
 
