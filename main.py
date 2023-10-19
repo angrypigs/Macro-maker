@@ -1,5 +1,6 @@
 from pynput import mouse, keyboard
 from threading import Thread
+from tkinter.filedialog import asksaveasfilename, askopenfilename
 import pyautogui as pg
 import customtkinter as ctk
 import tkinter as tk
@@ -68,6 +69,14 @@ class CTkListbox:
         else:
             self.cells.insert(index, text)
             self.__reset_by_index(index)
+
+    def clear(self) -> None:
+        """Remove all options"""
+        for i in reversed(range(len(self.cells))):
+            print(i, self.cells)
+            self.selected_cell = i
+            self.delete(i)
+        self.selected_cell = -1
     
     def return_contents(self) -> list[str]:
         """Return all options as list of strings"""
@@ -85,7 +94,7 @@ class CTkListbox:
         """Place listbox"""
         self.surf.place(**kwargs)
 
-    
+
 
 class App:
 
@@ -122,6 +131,29 @@ class App:
 
         self.master.mainloop()
 
+    def save_commands(self) -> None:
+        path = asksaveasfilename(defaultextension=".txt", 
+            filetypes=[("text file (.txt)", ".txt")], 
+            title="Save commands")
+        if path == "":
+            return
+        text = "\n".join(self.commands_tablist.return_contents())
+        file = open(path, "w")
+        file.write(text)
+        file.close()
+
+    def load_commands(self) -> None:
+        path = askopenfilename(defaultextension=".txt", 
+            filetypes=[("text file (.txt)", ".txt")], 
+            title="Save commands")
+        if path == "":
+            return
+        file = open(path, "r")
+        contents = [x.rstrip() for x in file.readlines()]
+        self.commands_tablist.clear()
+        for i in contents:
+            self.commands_tablist.insert(text=i)
+        
     def time_waiter(self, time: int|float) -> None:
         for i in range(int(time)):
             if not self.flag_working: break
@@ -285,6 +317,14 @@ class App:
         self.save_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-20,
             height=80, corner_radius=10)
         self.save_frame.place(relx=0.72, rely=0.74, anchor='center')
+        ctk.CTkButton(self.save_frame, width=180, height=30,
+                      font=("Roboto", 18), text="Save commands",
+                      command=self.save_commands).place(
+                         relx=0.27, rely=0.5, anchor='center') 
+        ctk.CTkButton(self.save_frame, width=180, height=30,
+                      font=("Roboto", 18), text="Load commands",
+                      command=self.load_commands).place(
+                         relx=0.73, rely=0.5, anchor='center') 
 
         # notes frame
         self.notes_frame = ctk.CTkFrame(self.master, width=self.WIDTH//2-20,
